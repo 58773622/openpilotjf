@@ -39,6 +39,7 @@ class DesireHelper:
     self.keep_pulse_timer = 0.0
     self.prev_one_blinker = False
     self.desire = log.Desire.none
+    self.lane_change_wait_timer = 0.0
 
   @staticmethod
   def get_lane_change_direction(CS):
@@ -60,8 +61,11 @@ class DesireHelper:
         # Initialize lane change direction to prevent UI alert flicker
         self.lane_change_direction = self.get_lane_change_direction(carstate)
 
+        self.lane_change_wait_timer = 0.0
+
       # LaneChangeState.preLaneChange
       elif self.lane_change_state == LaneChangeState.preLaneChange:
+        self.lane_change_wait_timer += DT_MDL
         # Update lane change direction
         self.lane_change_direction = self.get_lane_change_direction(carstate)
 
@@ -75,7 +79,8 @@ class DesireHelper:
         if not one_blinker or below_lane_change_speed:
           self.lane_change_state = LaneChangeState.off
           self.lane_change_direction = LaneChangeDirection.none
-        elif torque_applied and not blindspot_detected:
+        elif (torque_applied or self.lane_change_wait_timer >= 0.50) and not blindspot_detected:
+          self.lane_change_wait_timer = 0.0
           self.lane_change_state = LaneChangeState.laneChangeStarting
 
       # LaneChangeState.laneChangeStarting
